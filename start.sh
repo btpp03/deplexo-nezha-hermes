@@ -66,12 +66,20 @@ while [ $n -lt 5 ]; do
 done
 [ -f "$PINNED" ] || { log "could not fetch agent; idling"; exec sleep 3600; }
 
+# preflight: prove we can actually reach the panel before blaming the agent
+log "preflight: DNS/TCP to $NEZHA_SERVER:$NEZHA_PORT"
+if command -v nc >/dev/null 2>&1; then
+  nc -z -w 8 "$NEZHA_SERVER" "$NEZHA_PORT" && log "preflight: TCP OK" || log "preflight: TCP FAILED"
+fi
+curl -sS -o /dev/null -w "preflight: HTTP %{http_code} in %{time_total}s\n" \
+  --max-time 15 "https://$NEZHA_SERVER/" 2>&1 || log "preflight: curl failed rc=$?"
+
 i=0
 while [ $i -lt 10 ]; do
   i=$((i+1))
   cp "$PINNED" "$BIN"; chmod 755 "$BIN"
   log "spawn #$i"
-  "$BIN" -s "$NEZHA_SERVER:$NEZHA_PORT" -p "$NEZHA_KEY" --tls \
+  "$BIN" -s "$NEZHA_SERVER:$NEZHA_PORT" -p "$NEZHA_KEY" --tls --debug \
     --report-delay 3 --skip-procs --skip-conn \
     --disable-send-query --disable-nat \
     --disable-auto-update --disable-force-update 2>&1
