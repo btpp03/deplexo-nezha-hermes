@@ -80,10 +80,12 @@ while [ $i -lt 10 ]; do
   cp "$PINNED" "$BIN"; chmod 755 "$BIN"
   # v0 agent: the panel names the entry from the agent's own --name/hostname, NOT
   # from an env var called NAME. Pass it explicitly or you inherit a stale slot name.
+  # v0.20.5 root command has NO --name flag (it exists only on subcommands) — the
+  # panel takes the entry name from the host's hostname, so set that instead.
   HOST_TAG="${NAME:-deplexo}"
+  hostname "$HOST_TAG" 2>/dev/null && log "hostname set to $HOST_TAG" || log "hostname unchanged ($(hostname 2>/dev/null))"
   log "spawn #$i (name=$HOST_TAG)"
   "$BIN" -s "$NEZHA_SERVER:$NEZHA_PORT" -p "$NEZHA_KEY" --tls --debug \
-    --name "$HOST_TAG" \
     --report-delay 3 --skip-procs --skip-conn \
     --disable-send-query --disable-nat \
     --disable-auto-update --disable-force-update 2>&1 | sed "s/^/[$HOST_TAG] /"
