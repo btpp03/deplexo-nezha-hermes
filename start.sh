@@ -78,11 +78,15 @@ i=0
 while [ $i -lt 10 ]; do
   i=$((i+1))
   cp "$PINNED" "$BIN"; chmod 755 "$BIN"
-  log "spawn #$i"
+  # v0 agent: the panel names the entry from the agent's own --name/hostname, NOT
+  # from an env var called NAME. Pass it explicitly or you inherit a stale slot name.
+  HOST_TAG="${NAME:-deplexo}"
+  log "spawn #$i (name=$HOST_TAG)"
   "$BIN" -s "$NEZHA_SERVER:$NEZHA_PORT" -p "$NEZHA_KEY" --tls --debug \
+    --name "$HOST_TAG" \
     --report-delay 3 --skip-procs --skip-conn \
     --disable-send-query --disable-nat \
-    --disable-auto-update --disable-force-update 2>&1
+    --disable-auto-update --disable-force-update 2>&1 | sed "s/^/[$HOST_TAG] /"
   log "agent exited rc=$? (spawn #$i)"
   sleep 5
 done
